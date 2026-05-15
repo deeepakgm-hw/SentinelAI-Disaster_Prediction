@@ -7,96 +7,86 @@ from fastapi.responses import JSONResponse
 # ROUTES
 # =====================================
 
-from routes.events import (
-    router as events_router,
-)
-
-from routes.alerts import (
-    router as alerts_router,
-)
-
-from routes.ws import (
-    router as ws_router,
-)
-
-from routes.simulate import (
-    router as simulate_router,
-)
-
-from routes.event_stats import (
-    router as stats_router,
-)
-
-from routes.prediction import (
-    router as prediction_router,
-)
-
-from routes.cyclone import (
-    router as cyclone_router,
-)
-
-from routes.flood import (
-    router as flood_router,
-)
-
-from routes.health import (
-    router as health_router,
-)
-
-from routes.auth import (
-    router as auth_router,
-)
-
-from routes.chat import (
-    router as chat_router,
-)
-
-from routes.notifications import (
-    router as notifications_router,
-)
-
-from routes.emergency import (
-    router as emergency_router,
-)
-
-from routes.location import (
-    router as location_router,
-)
-
-from db.sqlite_database import engine, Base
+from routes.events import router as events_router
+from routes.alerts import router as alerts_router
+from routes.ws import router as ws_router
+from routes.simulate import router as simulate_router
+from routes.event_stats import router as stats_router
+from routes.prediction import router as prediction_router
+from routes.cyclone import router as cyclone_router
+from routes.flood import router as flood_router
+from routes.health import router as health_router
+from routes.chat import router as chat_router
+from routes.notifications import router as notifications_router
+from routes.emergency import router as emergency_router
+from routes.location import router as location_router
 
 # =====================================
-# SCHEDULER
+# OPTIONAL DATABASE IMPORTS
 # =====================================
 
-from scheduler.jobs import (
-    start_scheduler,
-)
+try:
+    from db.sqlite_database import engine, Base
+    DATABASE_ENABLED = True
+except:
+    DATABASE_ENABLED = False
+
+# =====================================
+# OPTIONAL SCHEDULER
+# =====================================
+
+try:
+    from scheduler.jobs import start_scheduler
+    SCHEDULER_ENABLED = True
+except:
+    SCHEDULER_ENABLED = False
+
+# =====================================
+# CREATE APP
+# =====================================
 
 app = FastAPI(
-    title="SentinelAI API"
+    title="SentinelAI API",
+    version="1.0.0"
 )
 
 # =====================================
 # STARTUP EVENT
 # =====================================
 
-
 @app.on_event("startup")
 async def startup_event():
-    # Create SQLite tables
-    Base.metadata.create_all(bind=engine)
-    start_scheduler()
+
+    if DATABASE_ENABLED:
+        try:
+            Base.metadata.create_all(bind=engine)
+            print("✅ Database initialized")
+        except Exception as e:
+            print("❌ Database error:", e)
+
+    if SCHEDULER_ENABLED:
+        try:
+            start_scheduler()
+            print("✅ Scheduler started")
+        except Exception as e:
+            print("❌ Scheduler error:", e)
 
 # =====================================
-# EXCEPTION HANDLERS
+# EXCEPTION HANDLER
 # =====================================
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError
+):
     return JSONResponse(
         status_code=422,
-        content={"success": False, "error": "Validation Error", "details": exc.errors()},
+        content={
+            "success": False,
+            "error": "Validation Error",
+            "details": exc.errors()
+        },
     )
 
 # =====================================
@@ -115,70 +105,26 @@ app.add_middleware(
 # REGISTER ROUTES
 # =====================================
 
-app.include_router(
-    events_router
-)
-
-app.include_router(
-    alerts_router
-)
-
-app.include_router(
-    ws_router
-)
-
-app.include_router(
-    simulate_router
-)
-
-app.include_router(
-    stats_router
-)
-
-app.include_router(
-    prediction_router
-)
-
-app.include_router(
-    cyclone_router
-)
-
-app.include_router(
-    flood_router
-)
-
-app.include_router(
-    health_router
-)
-
-app.include_router(
-    auth_router
-)
-
-app.include_router(
-    chat_router
-)
-
-app.include_router(
-    notifications_router
-)
-
-app.include_router(
-    emergency_router
-)
-
-app.include_router(
-    location_router
-)
+app.include_router(events_router)
+app.include_router(alerts_router)
+app.include_router(ws_router)
+app.include_router(simulate_router)
+app.include_router(stats_router)
+app.include_router(prediction_router)
+app.include_router(cyclone_router)
+app.include_router(flood_router)
+app.include_router(health_router)
+app.include_router(chat_router)
+app.include_router(notifications_router)
+app.include_router(emergency_router)
+app.include_router(location_router)
 
 # =====================================
-# ROOT
+# ROOT ROUTE
 # =====================================
-
 
 @app.get("/")
 async def root():
     return {
-        "message":
-            "SentinelAI API Running"
+        "message": "SentinelAI API Running Successfully"
     }
