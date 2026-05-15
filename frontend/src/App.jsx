@@ -1,122 +1,86 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 
-function App() {
-  const [count, setCount] = useState(0)
+// Layout
+import MainLayout from './layouts/MainLayout'
+
+// Auth & Public Pages
+import WelcomeScreen from './pages/WelcomeScreen'
+import Login from './pages/Login'
+import Signup from './pages/Signup'
+import ForgotPassword from './pages/ForgotPassword'
+import ProtectedRoute from './components/ProtectedRoute'
+
+// Dashboard Pages
+import Dashboard from './pages/Dashboard'
+import GlobalMap from './pages/GlobalMap'
+import AlertFeeds from './pages/AlertFeeds'
+import AIPredictionPage from './pages/AIPredictionPage'
+import Emergency from './pages/Emergency'
+import Settings from './pages/Settings'
+
+// Hooks & Store
+import useWebSocket from './hooks/useWebSocket'
+import { useDisasterStore } from './store/disasterStore'
+import { useAuthStore } from './store/authStore'
+import { getEvents } from './services/api'
+
+import './index.css'
+
+export default function App() {
+  const setEvents = useDisasterStore((s) => s.setEvents)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+
+  // Connect Realtime Websocket
+  useWebSocket()
+
+  // Initial global data fetch
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    async function loadData() {
+      try {
+        const eventsData = await getEvents()
+        setEvents(eventsData)
+      } catch (error) {
+        console.error('Failed to load global events:', error)
+      }
+    }
+    loadData()
+    const interval = setInterval(loadData, 60000)
+    return () => clearInterval(interval)
+  }, [setEvents, isAuthenticated])
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      <Toaster position="top-right" toastOptions={{
+        className: 'bg-black/80 border border-cyber-cyan/30 text-white font-mono text-xs backdrop-blur-md',
+        success: { iconTheme: { primary: '#00F0FF', secondary: '#000' } },
+        error: { iconTheme: { primary: '#FF003C', secondary: '#000' } },
+      }} />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/welcome" element={<WelcomeScreen />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        
+        {/* Protected Dashboard Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/map" element={<GlobalMap />} />
+            <Route path="/alerts" element={<AlertFeeds />} />
+            <Route path="/emergency" element={<Emergency />} />
+            <Route path="/ai" element={<AIPredictionPage />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
+        </Route>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </>
   )
 }
-
-export default App
