@@ -16,19 +16,19 @@ from routes.prediction import router as prediction_router
 from routes.cyclone import router as cyclone_router
 from routes.flood import router as flood_router
 from routes.health import router as health_router
-from routes.chat import router as chat_router
 from routes.notifications import router as notifications_router
 from routes.emergency import router as emergency_router
 from routes.location import router as location_router
 
 # =====================================
-# OPTIONAL DATABASE IMPORTS
+# OPTIONAL SQLITE DATABASE
 # =====================================
 
 try:
     from db.sqlite_database import engine, Base
     DATABASE_ENABLED = True
-except:
+except Exception as e:
+    print("SQLite disabled:", e)
     DATABASE_ENABLED = False
 
 # =====================================
@@ -38,11 +38,12 @@ except:
 try:
     from scheduler.jobs import start_scheduler
     SCHEDULER_ENABLED = True
-except:
+except Exception as e:
+    print("Scheduler disabled:", e)
     SCHEDULER_ENABLED = False
 
 # =====================================
-# CREATE APP
+# CREATE FASTAPI APP
 # =====================================
 
 app = FastAPI(
@@ -62,17 +63,17 @@ async def startup_event():
             Base.metadata.create_all(bind=engine)
             print("✅ Database initialized")
         except Exception as e:
-            print("❌ Database error:", e)
+            print("❌ Database init failed:", e)
 
     if SCHEDULER_ENABLED:
         try:
             start_scheduler()
             print("✅ Scheduler started")
         except Exception as e:
-            print("❌ Scheduler error:", e)
+            print("❌ Scheduler failed:", e)
 
 # =====================================
-# EXCEPTION HANDLER
+# VALIDATION ERROR HANDLER
 # =====================================
 
 @app.exception_handler(RequestValidationError)
@@ -114,7 +115,6 @@ app.include_router(prediction_router)
 app.include_router(cyclone_router)
 app.include_router(flood_router)
 app.include_router(health_router)
-app.include_router(chat_router)
 app.include_router(notifications_router)
 app.include_router(emergency_router)
 app.include_router(location_router)
