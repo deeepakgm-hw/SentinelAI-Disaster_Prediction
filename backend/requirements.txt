@@ -3,8 +3,8 @@ uvicorn
 requests
 python-dotenv
 twilio
-pandas
 numpy
+pandas
 scikit-learn
 joblib
 httpx
