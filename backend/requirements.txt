@@ -10,3 +10,4 @@ joblib
 httpx
 motor
 sqlalchemy
+python-jose
